@@ -147,7 +147,6 @@ void Game::run()
 			{
 				Mix_PlayMusic(bgMusic , 2);
 			}
-
             
             handleEvents(event);
         }
@@ -155,9 +154,9 @@ void Game::run()
         
         SDL_RenderClear(gRenderer);
         SDL_RenderCopy(gRenderer, gTexture, NULL, NULL);
-        drawObjects(gRenderer, assets);
+        drawObjects(gRenderer, assets, event);
         SDL_RenderPresent(gRenderer);
-
+		
         SDL_Delay(200);
     }
 }
