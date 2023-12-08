@@ -1,6 +1,6 @@
 #include "game.hpp"
 #include "Tennis.hpp"
-
+bool Menu = true;
 bool Game::init()
 {
 	
@@ -66,8 +66,9 @@ bool Game::loadMedia()
 	
 	bool success = true;
 	
-	assets = loadTexture("PLAYERS_BALL.png");
+	assets = loadTexture("MyAssets.png");
     gTexture = loadTexture("tennisfield.png");
+	
 	if(assets==NULL || gTexture==NULL)
     {
         printf("Unable to run due to error: %s\n",SDL_GetError());
