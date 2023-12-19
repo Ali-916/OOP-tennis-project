@@ -1,5 +1,6 @@
-#include "game.hpp"
+#include "Game.hpp"
 #include <SDL_mixer.h>
+
 int main(int argc, char *argv[]){
 
     Game game;

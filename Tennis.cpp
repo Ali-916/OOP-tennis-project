@@ -1,241 +1,236 @@
 #include<iostream>
-#include "Tennis.hpp"
+#include "Player.hpp"
 #include <vector>
 #include <random>
-#include "game.hpp"
-using namespace std;
+#include "Score.hpp"
+#include "Game.hpp"
+#include "Ball.hpp"
 
-bool Running = true;
-bool isBallAnimatingUp = false; // Variable to control ball animation
-bool isBallAnimatingDown = false; // Variable to control ball animation
-int random_number = 0;
-bool UpServe , DownServe  , Flag= false;
-int x; int y;
-int uphl=0;
-int uphr=0;
-int ups=0;
-bool UpHit = false; bool DownHit = false;
-Unit PlayerUp = {{271,7,30,57}, {220*2, 40*2, 50*2, 50*2}};
-Unit PlayerDown = {{15,7,30,57}  , {220*2,380*2,50*2,50*2}};
+
+//DECLARING OPBJECTS
+Player PlayerUp({271,7,30,57}, {220*2, 40*2, 50*2, 50*2});
+Player PlayerDown({15,7,30,57}  , {220*2,380*2,50*2,50*2});
+Score UpScore({0,0,0,0} , {100,200,35,35});
+Score DownScore( {0,0,0,0,} , {100,700,35,35});
 Unit ScoreBoard = {{16,344,52,326},{50,160,100,600}};
-Unit UpScore = {{0,0,0,0} , {100,200,35,35}};
-Unit DownScore = {{0,0,0,0,} , {100,700,35,35}};
 Unit Winner = {{0,0,0,0} , {0,0,0,0}};
+Ball ball({0,0,0,0} , {0,0,0,0});
+Unit Pointer = {{0,0,0,0} , {0,0,0,0}};
 
-int A = 0;
-bool serve = false;
-Unit Temp;
-void handleEvents(SDL_Event& event);
 
-void drawObjects(SDL_Renderer* gRenderer, SDL_Texture* assets, SDL_Event& event){
-    
+
+
+void Tennis::DrawObjects(SDL_Renderer* gRenderer, SDL_Texture* assets, SDL_Event& event)
+{
     SDL_RenderCopy(gRenderer, assets, &PlayerUp.srcRect, &PlayerUp.moverRect);
     SDL_RenderCopy(gRenderer, assets, &PlayerDown.srcRect, &PlayerDown.moverRect);
-    SDL_RenderCopy(gRenderer, assets, &ScoreBoard.srcRect, &ScoreBoard.moverRect);
+   
     SDL_RenderCopy(gRenderer, assets, &UpScore.srcRect, &UpScore.moverRect);
     SDL_RenderCopy(gRenderer, assets, &DownScore.srcRect, &DownScore.moverRect);
+    
+    SDL_RenderCopy(gRenderer, assets, &ScoreBoard.srcRect, &ScoreBoard.moverRect);
     SDL_RenderCopy(gRenderer, assets, &Winner.srcRect, &Winner.moverRect);
+    
 
-    if (UpServe==true && PlayerUp.count <4){PlayerUp.Fly({271,7,30,57} , {271,135,35,57} , {330,135,31,57} , {391,137,30,55});}
-    if (DownServe==true && PlayerDown.count<4){PlayerDown.Fly({15,7,30,57} , {195,135,45,57} , {15,200,43,56} , {72,200,39,56});}
-    Temp.moverRect.y = Temp.moverRect.y + A;
-    if (A>0 && Temp.moverRect.y >120*2)
+    
+    if (PlayerUp.GetServe()==true && PlayerUp.count <4){PlayerUp.Animate({271,7,30,57} , {271,135,35,57} , {330,135,31,57} , {391,137,30,55});}
+    if (PlayerDown.GetServe()==true && PlayerDown.count<4){PlayerDown.Animate({15,7,30,57} , {195,135,45,57} , {15,200,43,56} , {72,200,39,56});}
+    ball.BallMove();
+    if (ball.GetSpeed()>0 && ball.moverRect.y >120*2)
     {
-        Temp.moverRect.x = Temp.moverRect.x  + random_number*2;
+        ball.BallSwing();
     }
 
-    if (A<0 && Temp.moverRect.y <120*2)
-    {  
-        Temp.moverRect.x = Temp.moverRect.x  + random_number*2; 
+    if (ball.GetSpeed()<0 && ball.moverRect.y <120*2)
+    {
+        ball.BallSwing();
     }
-    SDL_RenderCopy(gRenderer, assets, &Temp.srcRect, &Temp.moverRect);
-    handleEvents(event);
-   
+
+    SDL_RenderCopy(gRenderer, assets, &ball.srcRect, &ball.moverRect);
+    HandleEvents(event);
+
+    if (Turn == "up"){Pointer.srcRect = {744,176,156,52} ; Pointer.moverRect =  {820,90,30,30};}
+    else if (Turn == "down"){Pointer.srcRect = {744,176,156,52} ; Pointer.moverRect =  {820,870,30,30};} 
+    SDL_RenderCopy(gRenderer, assets, &Pointer.srcRect, &Pointer.moverRect);
+
+
 }
 
+//CREATING ARRAYS TO HANDLE THE EVENTS OF BOTH PLAYERS SIMULTANEOUSLY
 bool keysPlayerUp[SDL_NUM_SCANCODES] = {false};
 bool keysPlayerDown[SDL_NUM_SCANCODES] = {false};
 
-
-//FOR ANOTHER ROUND, MAKE serve == false
-void handleEvents(SDL_Event& event) {
-
-    if (UpScore.Score==3 || DownScore.Score==3){Running = false;}
-
-
-if (isBallAnimatingUp)
+void Tennis::HandleEvents(SDL_Event& event)
 {
-    // Temp.moverRect.y= Temp.moverRect.y + A;
+   
+    //Ending the game when any player reaches a score of 3
+    if (UpScore.Gets() == 3 ||  DownScore.Gets() == 3){GameState = false;}
 
-    // if (A>0 && Temp.moverRect.y >120*2)
-    // {
-    //     Temp.moverRect.x = Temp.moverRect.x  + random_number*2;
-    // }
-
-    // if (A<0 && Temp.moverRect.y <120*2)
-    // {  
-    //     Temp.moverRect.x = Temp.moverRect.x  + random_number*2; 
-    // }
-}
-
-    if (event.type == SDL_KEYDOWN) {
+    //START EVENT HANDLING FOR KEY PRESSES
+    if (event.type == SDL_KEYDOWN) 
+    {
         keysPlayerUp[event.key.keysym.scancode] = true;
         keysPlayerDown[event.key.keysym.scancode] = true;
-
-    } else if (event.type == SDL_KEYUP) {
+    }
+    else if (event.type == SDL_KEYUP) 
+    {
         keysPlayerUp[event.key.keysym.scancode] = false;
         keysPlayerDown[event.key.keysym.scancode] = false;
     }
-     if (event.type == SDL_QUIT) {
-        } else if (event.type == SDL_MOUSEBUTTONDOWN) {
-            if (event.button.button == SDL_BUTTON_LEFT) {
-                int mouseX = event.button.x;
-                int mouseY = event.button.y;
-
-                // Use mouseX and mouseY as needed
-                printf("Left click at (%d, %d)\n", mouseX, mouseY);}}
-
-    // Update player movements based on key states
-    if (keysPlayerUp[SDL_SCANCODE_A] && PlayerUp.moverRect.x >= 140*2 && Running == true) {
-        PlayerUp.moverRect.x -= 20*2;
-    }
-    if (keysPlayerUp[SDL_SCANCODE_D] && PlayerUp.moverRect.x <= 330*2 && Running == true) {
-        PlayerUp.moverRect.x += 20*2;
-    }
-    if (keysPlayerUp[SDL_SCANCODE_W] && PlayerUp.moverRect.y >= 60*2 && Running == true) {
-        PlayerUp.moverRect.y -= 20*2;
-    }
-    if (keysPlayerUp[SDL_SCANCODE_S] && PlayerUp.moverRect.y <= 120*2 && Running == true) {
-        PlayerUp.moverRect.y += 20*2;
-    }
-    if (keysPlayerUp[SDL_SCANCODE_SPACE] && serve == false && Running == true){
-        isBallAnimatingUp = true; serve = true;UpServe =  true;
-         if (PlayerUp.moverRect.x - Temp.moverRect.x > 0)
-            {
-            //HIT TO RIGHT
-            random_number = 5;
-            }
-        else if (PlayerUp.moverRect.x - Temp.moverRect.x > 0) {random_number = -5;}
-        else {random_number = 0;}
-
-        Temp = {{512,155,9,9}, {PlayerUp.moverRect.x, PlayerUp.moverRect.y, 20*2, 20*2}}; A = 30*2;
-        
-        UpHit = true; DownHit = false;
-        
-    }
-
-    if (keysPlayerDown[SDL_SCANCODE_LEFT] && PlayerDown.moverRect.x >= 140*2 && Running == true) {
-        PlayerDown.moverRect.x -= 20*2;
-    }
-    if (keysPlayerDown[SDL_SCANCODE_RIGHT] && PlayerDown.moverRect.x <= 330*2 && Running == true) {
-        PlayerDown.moverRect.x += 20*2;
-    }
-    if (keysPlayerDown[SDL_SCANCODE_UP] && PlayerDown.moverRect.y >= 280*2 && Running == true) {
-        PlayerDown.moverRect.y -= 20*2;
-    }
-    if (keysPlayerDown[SDL_SCANCODE_DOWN] && PlayerDown.moverRect.y <= 350*2 && Running == true) {
-        PlayerDown.moverRect.y += 20*2;
-    }
-    if (keysPlayerDown[SDL_SCANCODE_RSHIFT]  && serve == false  && Running == true){
-        isBallAnimatingUp = true; serve = true;
-        // random_number = std::rand() % 10 - 10;
-        Temp = {{512,155,9,9}, { PlayerDown.moverRect.x, PlayerDown.moverRect.y , 20*2, 20*2}};  A = -30*2;
-        DownServe = true;
-        UpHit = false ; DownHit = true;
-
-    }
-
-    if (UpServe == false && DownServe == true)
+    if (event.type == SDL_QUIT) {} 
+    else if (event.type == SDL_MOUSEBUTTONDOWN) 
     {
-     //PLAYER DOWN HITTED THE BALL    
-    
-     if (abs(Temp.moverRect.x -PlayerUp.moverRect.x) < 40*2 && abs(Temp.moverRect.y - PlayerUp.moverRect.y) <40*2   )
+        if (event.button.button == SDL_BUTTON_LEFT) 
         {
-            A = A * -1; UpServe = true ; DownServe = false; Flag = false; UpHit = false; DownHit = true; PlayerUp.count = 0;
+                mouseX = event.button.x;
+                mouseY = event.button.y;
+
+                //PRINTING THE COORDINATES WHERE THE MOUSE WAS PRESSED 
+                printf("Left click at (%d, %d)\n", mouseX, mouseY);
+                if (Decide == false){
+                if (mouseY < 450){Turn = "up";Decide = true;}
+                else if (mouseY > 500){Turn = "down";Decide = true;}}
+
         }
-    if (Flag == false){y = PlayerUp.moverRect.x - Temp.moverRect.x; Flag = true;}
-        
-    if (y>-20*2 && y>20*2)
-    {
-        random_number = 0;
-        
-    }
-    else if (y>0)
-    {
-        random_number = -5;
-        
-    }
-    else 
-    {
-        random_number = 5;
-    }
-    
     }
 
-    if (UpServe == true && DownServe == false)
+    
+
+    //MOVING PLAYER UP USING AWSD KEYS AND SPACE FOR SERVING
+    if (keysPlayerUp[SDL_SCANCODE_A] && PlayerUp.moverRect.x >= 105*2 && GameState == true) 
+        {PlayerUp.MovePlayerLeft();}
+    if (keysPlayerUp[SDL_SCANCODE_D] && PlayerUp.moverRect.x <= 365*2 && GameState == true) 
+        {PlayerUp.MovePlayerRight();}
+    if (keysPlayerUp[SDL_SCANCODE_W] && PlayerUp.moverRect.y >= 60*2 && GameState == true) 
+        {PlayerUp.MovePlayerTop();}
+    if (keysPlayerUp[SDL_SCANCODE_S] && PlayerUp.moverRect.y <= 120*2 && GameState == true)
+        {PlayerUp.MovePlayerBelow();}
+    if (keysPlayerUp[SDL_SCANCODE_SPACE] && Round == false && GameState == true && Turn == "up")
     {
-     //PLAYER UP HITTED THE BALL
-     if (abs(Temp.moverRect.x -PlayerDown.moverRect.x) < 40*2 && abs(Temp.moverRect.y - PlayerDown.moverRect.y) <30*2   )
+        x.hit = false;
+        Round = true; PlayerUp.SetServe(true); 
+       
+        x.loadhit();
+        //SHOW THE BALL ON SCREEN COMING FROM PLAYER UP
+        ball.srcRect = {512,155,9,9}; ball.moverRect =  {PlayerUp.moverRect.x, PlayerUp.moverRect.y, 20*2, 20*2};
+        ball.SetSpeed(60);
+        PlayerUp.count = 0;
+    }
+
+    //MOVING PLAYER DOWN USING L,R;U,D KEYS AND RSHIFT FOR SERVING
+    if (keysPlayerDown[SDL_SCANCODE_LEFT] && PlayerDown.moverRect.x >= 105*2 && GameState == true) 
+        {PlayerDown.MovePlayerLeft();}
+    if (keysPlayerDown[SDL_SCANCODE_RIGHT] && PlayerDown.moverRect.x <= 365*2 && GameState == true) 
+        {PlayerDown.MovePlayerRight();}
+    if (keysPlayerDown[SDL_SCANCODE_UP] && PlayerDown.moverRect.y >= 280*2 && GameState == true) 
+        {PlayerDown.MovePlayerTop();}
+    if (keysPlayerDown[SDL_SCANCODE_DOWN] && PlayerDown.moverRect.y <= 350*2 && GameState == true)
+        {PlayerDown.MovePlayerBelow();}
+    if (keysPlayerDown[SDL_SCANCODE_RSHIFT] && Round == false && GameState == true && Turn == "down" )
+    {
+        x.hit = false;
+         x.loadhit();
+        Round = true; PlayerDown.SetServe(true);
+
+        //SHOW THE BALL ON SCREEN COMING FROM PLAYER UP
+        ball.srcRect = {512,155,9,9}; ball.moverRect=  {PlayerDown.moverRect.x, PlayerDown.moverRect.y, 20*2, 20*2};
+        ball.SetSpeed(-60);
+        PlayerDown.count = 0;
+    }
+
+    //DETERMINING COLLISIONS BETWEEN THE BALL;
+
+    //The Hitting turn = PLayerUP ie player down made the serve and now its time for player up to hit 
+    if (PlayerUp.GetServe() == false && PlayerDown.GetServe() == true)
+    {
+        XDiff = abs(PlayerUp.moverRect.x - ball.moverRect.x);
+        YDiff = abs(PlayerUp.moverRect.y - ball.moverRect.y);
+        if (keysPlayerUp[SDL_SCANCODE_SPACE] && XDiff < 80 && YDiff <80)  //BALL SUCCESSFULLY HIT
         {
-            A = A * -1; UpServe = false ; DownServe = true; Flag = false; UpHit = true; DownHit = false; PlayerDown.count = 0;
+            x.hit = false;
+            x.loadhit();
+            ball.Reverse();
+            PlayerUp.SetServe(true);
+            PlayerDown.SetServe(false);
+            PlayerUp.count = 0;
+
+            if (ball.moverRect.x>750){ball.SetCurve(-10);}
+            else if (ball.moverRect.x<240){ball.SetCurve(10);}
+            else if (XDiff > -10 && XDiff < 10){ball.SetCurve(0);}
+            else if (XDiff > 0){ball.SetCurve(10);}
+            else {ball.SetCurve(-10);}
         }
+    }
 
-    if (Flag == false){x = PlayerDown.moverRect.x - Temp.moverRect.x;Flag = true;}
+    //THE HITTING TURN = PlayerDown ie PlayerUp made the serve and now its time for player down to hir
+    if (PlayerDown.GetServe() == false && PlayerUp.GetServe() == true)
+    {
+        int XDiff = abs(PlayerDown.moverRect.x - ball.moverRect.x);
+        int YDiff = abs(PlayerDown.moverRect.y - ball.moverRect.y);
+
+        if (keysPlayerDown[SDL_SCANCODE_RSHIFT] && XDiff < 80 && YDiff <80)  //BALL SUCCESSFULLY HIT
+        {   
+            x.hit = false;
+            x.loadhit();
+            
+            ball.Reverse();
+            PlayerUp.SetServe(false);
+            PlayerDown.SetServe(true);
+            PlayerDown.count = 0;
+
+            if (ball.moverRect.x>750){ball.SetCurve(-10);}
+            else if (ball.moverRect.x<240){ball.SetCurve(10);}
+            else if (XDiff > -10 && XDiff < 10){ball.SetCurve(0);}
+            else if (XDiff > 0){ball.SetCurve(-10);}
+            else {ball.SetCurve(10);}
+        }
+    }
+
+
+    //CALCULATING THE SCORE OF EACH PLAYER:
+
+    //CASE 1: ITS PLAYER UP'S TURN TO HIT AND HE HIT OUTSIDE THE VERTICAL BOUNDARY
+    if (PlayerUp.GetServe() == true && (ball.moverRect.x >780 || ball.moverRect.x <160))
+    {++DownScore; PlayerUp.SetServe(false); Round=false; Turn = (Turn == "up") ? "down" : "up";}
+    else if (PlayerDown.GetServe() == true && (ball.moverRect.x >780 || ball.moverRect.x <160))
+    {++UpScore; PlayerDown.SetServe(false); Round=false; Turn = (Turn == "up") ? "down" : "up";}
+    else if (PlayerUp.GetServe() == true && ball.moverRect.y > 900)
+    {++UpScore; PlayerUp.SetServe(false); Round = false;Turn = (Turn == "up") ? "down" : "up";}
+    else if (PlayerDown.GetServe() == true && ball.moverRect.y < 75)
+    {++DownScore;PlayerDown.SetServe(false); Round = false;Turn = (Turn == "up") ? "down" : "up";}
+
     
-    
-    if (x>-20*2 && x>20*2)
+
+
+
+
+    //DISPLAYING THE SCORE OF EACH PLAYER ON THE SCREEN
+
+    if (DownScore == 0){DownScore.Setsrc({113,363,16,20});}
+    else if (DownScore == 1){DownScore.Setsrc({158,362,14,21});}
+    else if (DownScore == 2){DownScore.Setsrc({201,362,15,21});}
+    else if (DownScore == 3) {DownScore.Setsrc({245,363,15,20});}
+
+    if (UpScore == 0){UpScore.Setsrc({113,363,16,20});}
+    else if (UpScore == 1){UpScore.Setsrc({158,362,14,21});}
+    else if (UpScore == 2){UpScore.Setsrc({201,362,15,21});}
+    else if (UpScore == 3) {UpScore.Setsrc({245,363,15,20});}
+
+
+    //DISPLAY THE WINNER BATCH
+    if (UpScore.Gets() == 3)
     {
-        //STRAIGHT HIT 
-        random_number = 0;
+        Winner.SetObj({292,337,379,310} , {400, 200, 100*2, 100*2});
+        x.loadmusic2();
     }
-
-    else if (x>0)
+    else if (DownScore.Gets() == 3)
     {
-        random_number = 5;
-        
-    }
-    else 
-    {
-        random_number = -5;
-    }
+        Winner.SetObj({292,337,379,310}  , {400,500,100*2,100*2});
+        x.loadmusic2();
     }
 
-// this part handles score handling and everything ... but contains coordinates error 
-//     if ((Temp.moverRect.x <280 || Temp.moverRect.x >660) && DownServe == true and UpServe == false)
-//     {UpScore.Score++;DownServe = false;serve = false;}
-//     if (Temp.moverRect.y < 100 && DownServe == true && UpServe == false){DownScore.Score++;DownServe = false;serve = false;}
-//    std::cout << Temp.srcRect.x << "  ";
-//     if ((Temp.moverRect.x <280 || Temp.moverRect.x >660) && DownServe == false and UpServe == true)
-//     {DownScore.Score++;UpServe = false;serve=false;}
-//     if (Temp.moverRect.y > 900 && UpServe == true && DownServe == false){UpScore.Score++;UpServe = false;serve=false;}
-    
-    //PLAYER UP SCORES A POINT:
-    // if (UpServe == false && DownServe == true && (Temp.moverRect.x <280 || Temp.moverRect.x >660))
-    // {UpServ}
-    // else if (UpServe==true && DownServe==false && Temp.moverRect.y >900)
-    // {UpScore.Score++; UpServe=false;serve = false;}
-
-
-
-    if (DownScore.Score == 0){DownScore.srcRect = {113,363,16,20};}
-    else if (DownScore.Score == 1){DownScore.srcRect = {158,362,14,21};}
-    else if (DownScore.Score == 2){DownScore.srcRect = {201,362,15,21};}
-    else if (DownScore.Score == 3) {DownScore.srcRect = {245,363,15,20};}
-
-    if (UpScore.Score == 0){UpScore.srcRect = {113,363,16,20};}
-    else if (UpScore.Score == 1){UpScore.srcRect = {158,362,14,21};}
-    else if (UpScore.Score == 2){UpScore.srcRect = {201,362,15,21};}
-    else if (UpScore.Score == 3) {UpScore.srcRect = {245,363,15,20};}
-
-    //winner display;
-    if (UpScore.Score == 3)
-    {
-        Winner = {{292,337,379,310} , {400, 300, 100*2, 100*2}};
-    }
-    else if (DownScore.Score == 3)
-    {
-        Winner = {{292,337,379,310}  , {400,500,100*2,100*2}};
-    }
-
-
+  
 }
+
+
+
